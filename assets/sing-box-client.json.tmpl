@@ -1,0 +1,165 @@
+{
+  "log": {
+    "level": "info",
+    "timestamp": true
+  },
+  "dns": {
+    "servers": [
+      {
+        "type": "https",
+        "tag": "remote-doh",
+        "server": "1.1.1.1",
+        "detour": "proxy"
+      },
+      {
+        "type": "udp",
+        "tag": "domestic",
+        "server": "223.5.5.5"
+      },
+      {
+        "type": "local",
+        "tag": "local"
+      }
+    ],
+    "rules": [
+      { "rule_set": ["geosite-category-ads-all"], "action": "reject" },
+      { "rule_set": ["geosite-cn"], "action": "route", "server": "domestic" },
+      { "rule_set": ["geosite-geolocation-!cn"], "action": "route", "server": "remote-doh" }
+    ],
+    "final": "remote-doh",
+    "strategy": "ipv4_only",
+    "independent_cache": true
+  },
+  "inbounds": [
+    {
+      "type": "tun",
+      "tag": "tun-in",
+      "interface_name": "sb-tun0",
+      "address": ["172.18.0.1/30", "fdfe:dcba:9876::1/126"],
+      "auto_route": true,
+      "strict_route": true,
+      "stack": "system",
+      "endpoint_independent_nat": true
+    }
+  ],
+  "outbounds": [
+    {
+      "type": "selector",
+      "tag": "proxy",
+      "outbounds": ["auto", "reality", "hysteria2"],
+      "default": "auto"
+    },
+    {
+      "type": "urltest",
+      "tag": "auto",
+      "outbounds": ["reality", "hysteria2"],
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": "5m",
+      "tolerance": 50,
+      "idle_timeout": "30m",
+      "interrupt_exist_connections": false
+    },
+    {
+      "type": "vless",
+      "tag": "reality",
+      "server": "{{server_address}}",
+      "server_port": 443,
+      "uuid": "{{vless_uuid}}",
+      "flow": "xtls-rprx-vision",
+      "tls": {
+        "enabled": true,
+        "server_name": "{{reality_sni}}",
+        "utls": { "enabled": true, "fingerprint": "chrome" },
+        "reality": {
+          "enabled": true,
+          "public_key": "{{reality_public_key}}",
+          "short_id": "{{reality_short_id}}"
+        }
+      }
+    },
+    {
+      "type": "hysteria2",
+      "tag": "hysteria2",
+      "server": "{{server_address}}",
+      "server_port": 443,
+      "password": "{{hysteria2_password}}",
+      "obfs": {
+        "type": "salamander",
+        "password": "{{hysteria2_obfs_password}}"
+      },
+      "tls": {
+        "enabled": true,
+        "server_name": "{{reality_sni}}",
+        "insecure": true,
+        "alpn": ["h3"]
+      },
+      "up_mbps": {{client_up_mbps}},
+      "down_mbps": {{client_down_mbps}}
+    },
+    { "type": "direct", "tag": "direct" },
+    { "type": "block", "tag": "block" }
+  ],
+  "route": {
+    "rule_set": [
+      {
+        "tag": "geosite-cn",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-cn.srs",
+        "download_detour": "direct",
+        "update_interval": "24h"
+      },
+      {
+        "tag": "geosite-geolocation-!cn",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-geolocation-!cn.srs",
+        "download_detour": "direct",
+        "update_interval": "24h"
+      },
+      {
+        "tag": "geosite-category-ads-all",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-category-ads-all.srs",
+        "download_detour": "direct",
+        "update_interval": "24h"
+      },
+      {
+        "tag": "geoip-cn",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-cn.srs",
+        "download_detour": "direct",
+        "update_interval": "24h"
+      }
+    ],
+    "rules": [
+      { "action": "sniff" },
+      { "protocol": "dns", "action": "hijack-dns" },
+      { "ip_is_private": true, "outbound": "direct" },
+      {
+        "domain": ["dns.alidns.com", "doh.pub"],
+        "ip_cidr": ["223.5.5.5/32", "223.6.6.6/32", "119.29.29.29/32"],
+        "outbound": "direct"
+      },
+      { "rule_set": ["geosite-category-ads-all"], "outbound": "block" },
+      { "rule_set": ["geosite-cn"], "outbound": "direct" },
+      { "rule_set": ["geoip-cn"], "outbound": "direct" },
+      { "rule_set": ["geosite-geolocation-!cn"], "outbound": "proxy" }
+    ],
+    "final": "proxy",
+    "auto_detect_interface": true,
+    "default_domain_resolver": {
+      "server": "local",
+      "strategy": "ipv4_only"
+    }
+  },
+  "experimental": {
+    "cache_file": { "enabled": true, "path": "cache.db" },
+    "clash_api": {
+      "external_controller": "127.0.0.1:9090",
+      "default_mode": "rule"
+    }
+  }
+}

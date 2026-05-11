@@ -1,0 +1,27 @@
+# macOS
+.DS_Store
+
+# Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Python (in case anyone clones the skill and runs the reference project here)
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+.coverage
+
+# Secrets — should never be in this repo (it's methodology only)
+state.json
+*.secret
+*.pem
+*.key
+clients/state.json
+clients/out/
+
+# Packaged skill artifact (generated)
+*.skill

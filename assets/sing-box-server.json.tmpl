@@ -1,0 +1,79 @@
+{
+  "log": {
+    "level": "info",
+    "timestamp": true
+  },
+  "dns": {
+    "servers": [
+      {
+        "type": "https",
+        "tag": "doh",
+        "server": "1.1.1.1"
+      }
+    ],
+    "strategy": "ipv4_only"
+  },
+  "inbounds": [
+    {
+      "type": "vless",
+      "tag": "vless-reality-in",
+      "listen": "::",
+      "listen_port": 443,
+      "users": [
+        {
+          "name": "{{device_name}}",
+          "uuid": "{{vless_uuid}}",
+          "flow": "xtls-rprx-vision"
+        }
+      ],
+      "tls": {
+        "enabled": true,
+        "server_name": "{{reality_sni}}",
+        "reality": {
+          "enabled": true,
+          "handshake": {
+            "server": "{{reality_sni}}",
+            "server_port": 443
+          },
+          "private_key": "{{reality_private_key}}",
+          "short_id": ["{{reality_short_id}}"]
+        }
+      }
+    },
+    {
+      "type": "hysteria2",
+      "tag": "hysteria2-in",
+      "listen": "::",
+      "listen_port": 443,
+      "users": [
+        {
+          "name": "{{device_name}}",
+          "password": "{{hysteria2_password}}"
+        }
+      ],
+      "obfs": {
+        "type": "salamander",
+        "password": "{{hysteria2_obfs_password}}"
+      },
+      "tls": {
+        "enabled": true,
+        "alpn": ["h3"],
+        "certificate_path": "/etc/sing-box/cert.pem",
+        "key_path": "/etc/sing-box/key.pem"
+      },
+      "masquerade": "https://{{reality_sni}}",
+      "up_mbps": {{up_mbps}},
+      "down_mbps": {{down_mbps}}
+    }
+  ],
+  "outbounds": [
+    { "type": "direct", "tag": "direct" },
+    { "type": "block", "tag": "block" }
+  ],
+  "experimental": {
+    "cache_file": {
+      "enabled": true,
+      "path": "/var/lib/sing-box/cache.db"
+    }
+  }
+}

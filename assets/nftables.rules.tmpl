@@ -1,0 +1,46 @@
+#!/usr/sbin/nft -f
+# Minimal nftables ruleset for a sing-box VPN host.
+# Substitute {{ssh_port}} from spec before applying.
+# Apply: nft -c -f this-file && nft -f this-file
+# Persist: copy to /etc/nftables.conf, enable systemctl unit.
+
+flush ruleset
+
+table inet filter {
+  chain input {
+    type filter hook input priority 0; policy drop;
+
+    # Established / related connections come back through.
+    ct state established,related accept
+
+    # Loopback unconditionally.
+    iifname "lo" accept
+
+    # Invalid → drop early.
+    ct state invalid drop
+
+    # ICMP for diagnostics; rate-limited so not a vector.
+    ip protocol icmp limit rate 10/second accept
+    ip6 nexthdr icmpv6 limit rate 10/second accept
+
+    # SSH on the configured port.
+    tcp dport {{ssh_port}} ct state new accept
+
+    # The two VPN listeners.
+    tcp dport 443 ct state new accept
+    udp dport 443 ct state new accept
+
+    # Anything else gets dropped (and counted, for debugging).
+    counter drop
+  }
+
+  chain forward {
+    type filter hook forward priority 0; policy drop;
+    # The host is not a router. sing-box terminates traffic in user space
+    # and originates new outbound connections, so we don't need to forward.
+  }
+
+  chain output {
+    type filter hook output priority 0; policy accept;
+  }
+}
