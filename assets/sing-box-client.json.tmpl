@@ -23,6 +23,29 @@
     ],
     "rules": [
       { "rule_set": ["geosite-category-ads-all"], "action": "reject" },
+      {
+        "domain_suffix": [
+          "meituan.com", "meituan.net", "mtcdnimg.com", "dpfile.com",
+          "sankuai.com", "dianping.com",
+          "bilibili.com", "hdslb.com", "biliapi.net", "bilivideo.com",
+          "douyin.com", "douyinpic.com", "douyinvod.com", "snssdk.com",
+          "bytedance.com", "bytedns.net",
+          "weibo.com", "weibocdn.com", "sinaimg.cn", "sina.com.cn",
+          "taobao.com", "tmall.com", "alicdn.com", "alipay.com",
+          "alipayobjects.com", "aliyuncs.com",
+          "jd.com", "360buyimg.com", "jdcdn.com",
+          "163.com", "126.com", "netease.com", "126.net",
+          "qq.com", "qpic.cn", "gtimg.cn", "weixin.qq.com",
+          "tencent.com", "myqcloud.com",
+          "zhihu.com", "zhimg.com",
+          "xiaohongshu.com", "xhscdn.com",
+          "baidu.com", "bdimg.com", "bdstatic.com", "bcebos.com",
+          "iqiyi.com", "iqiyipic.com",
+          "youku.com", "ykimg.com"
+        ],
+        "action": "route",
+        "server": "domestic"
+      },
       { "rule_set": ["geosite-cn"], "action": "route", "server": "domestic" },
       { "rule_set": ["geosite-geolocation-!cn"], "action": "route", "server": "remote-doh" }
     ],
@@ -36,6 +59,7 @@
       "tag": "tun-in",
       "interface_name": "sb-tun0",
       "address": ["172.18.0.1/30", "fdfe:dcba:9876::1/126"],
+      "mtu": 1380,
       "auto_route": true,
       "strict_route": true,
       "stack": "system",
@@ -144,6 +168,28 @@
         "outbound": "direct"
       },
       { "rule_set": ["geosite-category-ads-all"], "outbound": "block" },
+      {
+        "domain_suffix": [
+          "meituan.com", "meituan.net", "mtcdnimg.com", "dpfile.com",
+          "sankuai.com", "dianping.com",
+          "bilibili.com", "hdslb.com", "biliapi.net", "bilivideo.com",
+          "douyin.com", "douyinpic.com", "douyinvod.com", "snssdk.com",
+          "bytedance.com", "bytedns.net",
+          "weibo.com", "weibocdn.com", "sinaimg.cn", "sina.com.cn",
+          "taobao.com", "tmall.com", "alicdn.com", "alipay.com",
+          "alipayobjects.com", "aliyuncs.com",
+          "jd.com", "360buyimg.com", "jdcdn.com",
+          "163.com", "126.com", "netease.com", "126.net",
+          "qq.com", "qpic.cn", "gtimg.cn", "weixin.qq.com",
+          "tencent.com", "myqcloud.com",
+          "zhihu.com", "zhimg.com",
+          "xiaohongshu.com", "xhscdn.com",
+          "baidu.com", "bdimg.com", "bdstatic.com", "bcebos.com",
+          "iqiyi.com", "iqiyipic.com",
+          "youku.com", "ykimg.com"
+        ],
+        "outbound": "direct"
+      },
       { "rule_set": ["geosite-cn"], "outbound": "direct" },
       { "rule_set": ["geoip-cn"], "outbound": "direct" },
       { "rule_set": ["geosite-geolocation-!cn"], "outbound": "proxy" }

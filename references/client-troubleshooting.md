@@ -2,6 +2,51 @@
 
 Read this when a deployed server is healthy (smoke test passes) but a client can't connect. Most issues are client-platform-specific. We've taken extensive notes from real deployments — start here.
 
+## Cross-platform: CN app images load slowly after VPN is on
+
+By far the most common post-deploy complaint. Symptoms include:
+
+- Meituan / Bilibili / Douyin / Xiaohongshu / 微博 app opens, text and small responses are fast, but **images and videos load slowly or fail entirely**.
+- Switching to "direct" mode in the client GUI makes everything fast again.
+- Server-side `journalctl -u sing-box` shows almost no traffic from the slow device — the requests aren't actually reaching the proxy.
+
+Two root causes, both addressed by the canonical client template:
+
+### Cause 1: TUN MTU too high
+
+The default TUN MTU (1500) is fine on a local network but causes PMTUD failures when the packet has to traverse cross-border links and QUIC/HTTP3 headers. The symptom is selective: small responses (text, JSON) fit in a single non-fragmented packet, but image fragments get silently dropped.
+
+**Fix**: set `inbounds[0].mtu = 1380` on the TUN inbound. The canonical template does this. If you generate configs manually, ensure MTU is set.
+
+### Cause 2: Popular CN apps' CDN sub-domains missing from `geosite-cn`
+
+SagerNet's `geosite-cn` is comprehensive but not exhaustive — major apps' image/video CDN sub-domains are sometimes missed. When a CDN sub-domain falls through to the catch-all DoH resolver, it gets a foreign Anycast IP. The connection then goes through the proxy → Tokyo → CN CDN, where the CN CDN often refuses foreign IPs or serves degraded quality.
+
+**Fix**: the canonical client template includes a `domain_suffix` whitelist of major CN apps' CDN suffixes (defined in `vpn_builder.routing.CN_APP_DIRECT_SUFFIXES`). This rule is positioned BEFORE `geosite-cn` so its narrower matches win. The same suffixes are also mapped to the `domestic` DNS resolver so they get CN-edge IPs.
+
+Coverage as of v0.1.0:
+
+- Meituan (meituan.com, mtcdnimg.com, sankuai.com, dianping.com, …)
+- Bilibili (bilibili.com, hdslb.com, biliapi.net, …)
+- Douyin / ByteDance (douyin.com, bytedance.com, snssdk.com, …)
+- Weibo (weibo.com, sinaimg.cn, …)
+- Alibaba (taobao.com, tmall.com, alicdn.com, alipay.com, …)
+- JD (jd.com, 360buyimg.com, …)
+- NetEase (163.com, 126.com, netease.com, …)
+- Tencent (qq.com, qpic.cn, weixin.qq.com, myqcloud.com, …)
+- Zhihu, Xiaohongshu, Baidu, iQiyi, Youku.
+
+**To add more**: append to `CN_APP_DIRECT_SUFFIXES` in `src/vpn_builder/routing.py`, run `subgen regen`, re-distribute. The list uses `domain_suffix` semantics, so `mtcdnimg.com` covers `*.mtcdnimg.com` too.
+
+### Diagnostic flow
+
+If a specific app is slow:
+
+1. **Confirm it's the VPN**: switch the client to "direct" mode in the GUI. If the app is fast in direct → VPN is the cause; continue to step 2. If still slow → not VPN-related (likely the user's Wi-Fi is geo-blocked or the app's CDN itself is misbehaving).
+2. **Watch the routing decisions**: in the client GUI, look at the "Connections" / "Logs" tab while reloading the app. Filter for the app's domain. Note which outbound is being used.
+3. If outbound is `proxy` (should be `direct`): the domain isn't in `geosite-cn` or the whitelist. Add the domain (or its suffix) to `CN_APP_DIRECT_SUFFIXES` and regen.
+4. If outbound is `direct` but images still fail: MTU. Verify `inbounds[0].mtu = 1380` in the loaded config. If it's missing or higher, regen with the canonical template.
+
 ## macOS — SFM (sing-box for Mac)
 
 SFM is the official sing-box GUI, distributed via `brew install --cask sfm` or sing-box's GitHub releases. Bundle ID: `io.nekohasekai.sfavt.standalone`. Container path: `~/Library/Group Containers/287TTNZF8L.io.nekohasekai.sfavt/`.

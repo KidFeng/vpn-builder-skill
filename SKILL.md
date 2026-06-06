@@ -39,6 +39,7 @@ The list below is what production experience has taught us. Skim before starting
 | 11 | `ping -M do` is Linux-only; macOS BSD ping uses `-D`. `mktemp --suffix=` is GNU-only. Smoke test must be portable | Smoke test on operator's Mac | `references/testing.md` |
 | 12 | iOS App Store sing-box lags upstream by 6–12 months (1.11.x while desktop is 1.13.x). The modern schema fails on iOS with `unknown field "type"` | iOS client config import | `references/client-troubleshooting.md` — use `subgen add <name> --legacy` or `subgen set-legacy <name>` |
 | 13 | Legacy iOS configs hit `DNS query loopback in transport[remote-doh]` if the server endpoint domain isn't routed through the local OS resolver | iOS legacy config startup | `vpn_builder.legacy.downgrade_to_legacy` prepends a bootstrap rule mapping `[server_address, raw.githubusercontent.com] → local` |
+| 14 | After deploy, users report "app images load slowly" or "image fails but text works" on popular CN apps (Meituan, Bilibili, Douyin, …) | Daily use after VPN is on | TUN `mtu: 1380` in the client template + curated `CN_APP_DIRECT_SUFFIXES` whitelist routed direct + via domestic DNS; see `references/client-troubleshooting.md` |
 
 ## The mandatory 6-stage workflow
 
